@@ -1,0 +1,59 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.5.0",
+  "resource_changes": [
+    {
+      "address": "null_resource.demo",
+      "mode": "managed",
+      "type": "null_resource",
+      "name": "demo",
+      "provider_name": "registry.terraform.io/hashicorp/null",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "id": "placeholder",
+          "triggers": {
+            "environment": "dev",
+            "timestamp": "2024-01-01T00:00:00Z"
+          },
+          "tags": {
+            "Environment": "dev",
+            "Owner": "platform-team",
+            "CostCenter": "engineering"
+          }
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "triggers": {},
+          "tags": {}
+        }
+      }
+    }
+  ],
+  "configuration": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "null_resource.demo",
+          "mode": "managed",
+          "type": "null_resource",
+          "name": "demo",
+          "provider_config_key": "null",
+          "expressions": {
+            "triggers": {
+              "constant_value": {
+                "environment": "dev"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
