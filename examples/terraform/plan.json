@@ -21,8 +21,7 @@
           },
           "tags": {
             "Environment": "dev",
-            "Owner": "platform-team",
-            "CostCenter": "engineering"
+            "Owner": "platform-team"
           }
         },
         "after_unknown": {

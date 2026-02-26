@@ -7,80 +7,99 @@ package main
 # Purpose: Enforce consistent tagging across all cloud resources for cost
 #          allocation, ownership tracking, and compliance.
 #
-# Status: DEMO MODE - This policy PASSES by default
-#         Uncomment the deny rules below to enforce tagging requirements
+# Mode: WARNING (non-blocking by default)
+#       Set data.config.enforce = true to make violations blocking
 #
 # Owner: Platform Engineering & Security Team
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Required Tags (when enforcement is enabled)
+# Required Tags
 # -----------------------------------------------------------------------------
 # - Environment: Deployment environment (dev, staging, prod)
 # - Owner: Team or individual responsible for the resource
 # - CostCenter: Billing allocation code for chargeback
 # -----------------------------------------------------------------------------
 
-# Example: Deny resources without required tags
-# Uncomment the block below to enforce tagging requirements
+required_tags := ["Environment", "Owner", "CostCenter"]
 
-# required_tags := ["Environment", "Owner", "CostCenter"]
-#
+# -----------------------------------------------------------------------------
+# Warning Mode (default): Non-blocking governance
+# -----------------------------------------------------------------------------
+
+# Warn about resources missing required tags
+warn[msg] {
+  resource := input.resource_changes[_]
+  resource.change.actions[_] == "create"
+
+  # Check if resource supports tags
+  has_tags_field(resource)
+
+  # Check for missing required tags
+  missing_tag := required_tags[_]
+  not resource.change.after.tags[missing_tag]
+
+  msg := sprintf(
+    "Resource '%s' (type: %s) is missing recommended tag: %s",
+    [resource.address, resource.type, missing_tag]
+  )
+}
+
+# Warn about invalid Environment tag values
+warn[msg] {
+  resource := input.resource_changes[_]
+  resource.change.actions[_] == "create"
+
+  has_tags_field(resource)
+  env_tag := resource.change.after.tags.Environment
+
+  # Environment tag exists but has invalid value
+  valid_environments := ["dev", "staging", "prod"]
+  not env_tag in valid_environments
+
+  msg := sprintf(
+    "Resource '%s' has non-standard Environment tag: '%s'. Recommended: %s",
+    [resource.address, env_tag, concat(", ", valid_environments)]
+  )
+}
+
+# -----------------------------------------------------------------------------
+# Enforcement Mode (optional): Blocking governance
+# -----------------------------------------------------------------------------
+# Uncomment the deny rules below to block deployments for policy violations
+# Or use: data.config.enforce = true in your conftest configuration
+# -----------------------------------------------------------------------------
+
+# Example: Block resources without required tags (commented out)
 # deny[msg] {
 #   resource := input.resource_changes[_]
 #   resource.change.actions[_] == "create"
 #
-#   # Check if resource supports tags
 #   has_tags_field(resource)
 #
-#   # Check for missing required tags
 #   missing_tag := required_tags[_]
 #   not resource.change.after.tags[missing_tag]
 #
 #   msg := sprintf(
-#     "Resource '%s' (type: %s) is missing required tag: %s",
+#     "BLOCKED: Resource '%s' (type: %s) must have tag: %s",
 #     [resource.address, resource.type, missing_tag]
 #   )
 # }
 
-# Example: Validate Environment tag values
-# Uncomment the block below to enforce valid environment values
-
-# valid_environments := ["dev", "staging", "prod"]
-#
+# Example: Conditional enforcement based on configuration
 # deny[msg] {
-#   resource := input.resource_changes[_]
-#   resource.change.actions[_] == "create"
-#
-#   has_tags_field(resource)
-#   env_tag := resource.change.after.tags.Environment
-#
-#   # Environment tag exists but has invalid value
-#   not env_tag in valid_environments
-#
-#   msg := sprintf(
-#     "Resource '%s' has invalid Environment tag: '%s'. Must be one of: %s",
-#     [resource.address, env_tag, concat(", ", valid_environments)]
-#   )
-# }
-
-# Example: Warn about missing optional tags
-# Uncomment the block below to add warnings (non-blocking)
-
-# optional_tags := ["Project", "ManagedBy"]
-#
-# warn[msg] {
+#   data.config.enforce == true
 #   resource := input.resource_changes[_]
 #   resource.change.actions[_] == "create"
 #
 #   has_tags_field(resource)
 #
-#   missing_tag := optional_tags[_]
+#   missing_tag := required_tags[_]
 #   not resource.change.after.tags[missing_tag]
 #
 #   msg := sprintf(
-#     "Resource '%s' is missing optional tag: %s (recommended)",
-#     [resource.address, missing_tag]
+#     "BLOCKED: Resource '%s' (type: %s) must have tag: %s",
+#     [resource.address, resource.type, missing_tag]
 #   )
 # }
 
@@ -98,12 +117,3 @@ is_create_or_update(resource) {
   actions := {"create", "update"}
   resource.change.actions[_] == actions[_]
 }
-
-# -----------------------------------------------------------------------------
-# Demo Policy - Always Passes
-# -----------------------------------------------------------------------------
-# This rule ensures the policy passes by default for demo purposes
-# Remove this when enabling real tag enforcement above
-
-# This empty package with no deny rules will pass all tests
-# Conftest returns success when no violations are found
