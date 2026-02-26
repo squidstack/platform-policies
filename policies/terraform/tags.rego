@@ -54,12 +54,12 @@ warn[msg] {
   env_tag := resource.change.after.tags.Environment
 
   # Environment tag exists but has invalid value
-  valid_environments := ["dev", "staging", "prod"]
-  not env_tag in valid_environments
+  valid_environments := {"dev", "staging", "prod"}
+  not valid_environments[env_tag]
 
   msg := sprintf(
-    "Resource '%s' has non-standard Environment tag: '%s'. Recommended: %s",
-    [resource.address, env_tag, concat(", ", valid_environments)]
+    "Resource '%s' has non-standard Environment tag: '%s'. Recommended: dev, staging, prod",
+    [resource.address, env_tag]
   )
 }
 
